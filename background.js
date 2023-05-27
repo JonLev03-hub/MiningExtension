@@ -1,9 +1,8 @@
-chrome.browserAction.onClicked.addListener(function () {
-  console.log("Created Popup");
-  chrome.windows.create({
-    url: chrome.runtime.getURL("popup.html"),
-    type: "popup",
-    width: 300,
-    height: 200,
-  });
-});
+console.log("Background Running");
+// Function to handle the message received in the background script
+function handleMessage(request, sender, sendResponse) {
+  console.log("Message received in background script:", request.message);
+}
+
+// Add a listener for messages from content scripts or other parts of the extension
+chrome.runtime.onMessage.addListener(handleMessage);

@@ -34,7 +34,11 @@ class Assets {
 let assets = new Assets({
   Player1: "assets/Player1.png",
   Stone: "assets/Stone.png",
+  Diamond: "assets/Diamond.png",
   Gold: "assets/Gold.png",
+  Iron: "assets/Iron.png",
+  Copper: "assets/Copper.png",
+  Coal: "assets/Coal.png",
 });
 
 // this is an entity class that can be used to draw animated and unanimated images, this will be extended for specific items that have hover actions, or click functions since they will be distinct per object
@@ -67,6 +71,8 @@ class Player extends Entity {
     this.frame = 0;
     this.maxFrame = maxFrame;
     this.animate = false;
+    this.inventory = [];
+    this.maxInventory = 18;
   }
   startAnimation() {
     this.animate = true;
@@ -97,15 +103,23 @@ class Player extends Entity {
   }
 }
 class Block extends Entity {
-  constructor(x, y, width, image) {
+  constructor(x, y, width, depth = 1) {
     // have it randomly choose the blocks here
-    super(x, y, width, width, image);
-    this.random = getRandomInt(4);
+    super(x, y, width, width, assets.images["Stone"]);
+    this.type = "Stone";
+    for (let i = 0; i < ORE_TYPES.length; i++) {
+      if (Math.random() < (0.01 * depth * (i + 1)) / 100) {
+        this.image = assets.images[ORE_TYPES[i]];
+        console.log(ORE_TYPES[i]);
+        this.type = ORE_TYPES[i];
+        return;
+      }
+    }
   }
   draw() {
     c.drawImage(
       this.image,
-      0 + this.width * this.random,
+      0,
       0,
       this.width,
       this.height,
@@ -117,7 +131,8 @@ class Block extends Entity {
   }
 }
 class World {
-  constructor() {
+  constructor(depth = 0) {
+    this.depth = depth;
     this.width = 7;
     this.height = 3;
     this.blocks = [];
@@ -125,12 +140,7 @@ class World {
       this.blocks.push([]);
       for (let j = 0; j < this.width; j++) {
         this.blocks[i].push(
-          new Block(
-            BLOCK_WIDTH * j,
-            BLOCK_WIDTH * i,
-            BLOCK_WIDTH,
-            assets.images["Stone"]
-          )
+          new Block(BLOCK_WIDTH * j, BLOCK_WIDTH * i, BLOCK_WIDTH, this.depth)
         );
       }
     }
@@ -145,8 +155,9 @@ class World {
     c.fillRect(1, 32, 128, 32);
     c.globalAlpha = 1.0;
   }
-  breakBlock() {
-    // have the broken block drop items
+  hitBlock() {
+    // have the broken block drop
+    this.depth++;
     for (let i = 0; i < this.height; i++) {
       for (let j = 0; j < this.width; j++) {
         // every block will need to move
@@ -160,13 +171,12 @@ class World {
               BLOCK_WIDTH * this.width,
               BLOCK_WIDTH * i,
               BLOCK_WIDTH,
-              assets.images["Stone"]
+              this.depth
             )
           );
         }
       }
     }
-    console.log(this.blocks);
   }
 }
 canvas = document.getElementById("gamecanvas");
@@ -175,6 +185,7 @@ canvas.width = 400;
 canvas.height = 300;
 const FPS = 10;
 const BLOCK_WIDTH = 32;
+const ORE_TYPES = ["Coal", "Copper", "Iron", "Gold", "Diamond"].reverse();
 const player = new Player(90, 32, 32, 32, assets.images["Player1"], 9);
 const world = new World();
 function gameloop() {
@@ -189,5 +200,5 @@ gameloop();
 
 window.addEventListener("click", () => {
   player.startAnimation();
-  world.breakBlock();
+  world.hitBlock();
 });

@@ -1,10 +1,16 @@
+* {
+  margin: 0;
+  padding: 0;
+}
 body {
-  width: 400px;
-  height: 300px;
+  /* width: 400px;
+  height: 300px; */
   font-family: Arial, sans-serif;
   /* border: 2px solid black; */
-  position:relative;
+  position: relative;
+  /* background-color: black; */
 }
 canvas {
-  border:2px solid black;
+  border: 2px solid black;
+  background: black;
 }

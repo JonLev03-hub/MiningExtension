@@ -50,6 +50,10 @@ let assets = new Assets({
   GoldItem: "assets/GoldItem.png",
   DiamondItem: "assets/DiamondItem.png",
   TextBackdrop: "assets/TextBackdrop.png",
+  Shadow: "assets/Shadow.png",
+  CoinIcon: "assets/CoinIcon.png",
+  BagIcon: "assets/BagIcon.png",
+  DepthIcon: "assets/DepthIcon.png",
 });
 // this is an entity class that can be used to draw animated and unanimated images, this will be extended for specific items that have hover actions, or click functions since they will be distinct per object
 class Entity {
@@ -85,20 +89,16 @@ class Player extends Entity {
     height,
     image,
     maxXPos = 0,
-    inventory = [
-      { name: "StoneItem", quantity: 10 },
-      { name: "CopperItem", quantity: 10 },
-      { name: "GoldItem", quantity: 10 },
-      { name: "IronItem", quantity: 10 },
-      { name: "DiamondItem", quantity: 10 },
-      { name: "CoalItem", quantity: 10 },
-    ]
+    inventory = [],
+    coins = 0
   ) {
     super(x, y, width, height, image);
     this.xPos = 0;
     this.maxXPos = maxXPos;
     this.animate = false;
     this.inventory = inventory;
+    this.damage = 1;
+    this.coins = coins;
   }
   startAnimation() {
     this.animate = true;
@@ -126,6 +126,24 @@ class Player extends Entity {
       }
     }
   }
+  break(type) {
+    let quantity = type == "Stone" ? 1 : getRandomInt(5);
+    type = type + "Item";
+    for (let i = 0; i < this.inventory.length; i++) {
+      if (this.inventory[i].name == type) {
+        this.inventory[i].quantity += quantity;
+        if (this.inventory[i].quantity > 64) {
+          quantity = this.inventory[i].quantity - 64;
+          this.inventory[i].quantity = 64;
+        } else {
+          return;
+        }
+      }
+    }
+    if (quantity > 0 && this.inventory.length < Player.maxInventory) {
+      player.inventory.push({ name: type, quantity: quantity });
+    }
+  }
 }
 class Block extends Entity {
   constructor(x, y, width, depth = 1) {
@@ -134,10 +152,10 @@ class Block extends Entity {
     super(x, y, width, width, assets.images["Stone"]);
     this.type = "Stone";
     this.xPos = getRandomInt(6);
+    this.health = Math.min(1 + Math.floor(depth / 300), 4);
     for (let i = 0; i < ORE_TYPES.length; i++) {
       if (Math.random() < (0.01 * depth * (i + 1)) / 100) {
         this.image = assets.images[ORE_TYPES[i]];
-        console.log(ORE_TYPES[i]);
         this.type = ORE_TYPES[i];
         this.xPos = 0;
         return;
@@ -147,6 +165,7 @@ class Block extends Entity {
 }
 
 class World {
+  static yOffset = 64;
   constructor(depth = 0) {
     this.depth = depth;
     this.width = 7;
@@ -156,7 +175,12 @@ class World {
       this.blocks.push([]);
       for (let j = 0; j < this.width; j++) {
         this.blocks[i].push(
-          new Block(BLOCK_WIDTH * j, BLOCK_WIDTH * i, BLOCK_WIDTH, this.depth)
+          new Block(
+            BLOCK_WIDTH * j,
+            World.yOffset + BLOCK_WIDTH * i,
+            BLOCK_WIDTH,
+            this.depth
+          )
         );
       }
     }
@@ -169,11 +193,27 @@ class World {
     }
     c.globalAlpha = 0.6;
     c.fillStyle = "black";
-    c.fillRect(1, 32, 128, 32);
+    c.fillRect(1, World.yOffset + 32, 128, 32);
     c.globalAlpha = 1.0;
+    c.drawImage(
+      assets.images.Shadow,
+      0,
+      World.yOffset,
+      this.width * BLOCK_WIDTH,
+      this.height * BLOCK_WIDTH
+    );
+    // c.drawImage();
   }
-  hitBlock() {
+  hitBlock(damage = player.damage) {
     // have the broken block drop
+    let hitBlock = this.blocks[1][4];
+    // do damage to the block
+    hitBlock.health -= damage;
+    if (hitBlock.health >= 0) {
+      return;
+    }
+
+    player.break(hitBlock.type);
     this.depth++;
     for (let i = 0; i < this.height; i++) {
       for (let j = 0; j < this.width; j++) {
@@ -181,18 +221,20 @@ class World {
         this.blocks[i][j].x -= BLOCK_WIDTH;
         if (this.blocks[i][j].x == -32) {
           j--;
-          console.log("remove one");
           this.blocks[i].shift();
           this.blocks[i].push(
             new Block(
               BLOCK_WIDTH * this.width,
-              BLOCK_WIDTH * i,
+              World.yOffset + BLOCK_WIDTH * i,
               BLOCK_WIDTH,
               this.depth
             )
           );
         }
       }
+    }
+    if (hitBlock.health < 0) {
+      this.hitBlock(-hitBlock.health);
     }
   }
 }
@@ -310,6 +352,7 @@ class Popup {
         BLOCK_WIDTH
       );
     }
+    let itemId = 0;
     for (let row = Player.maxInventory / Popup.width; row > 0; row--) {
       for (let column = 0; column < Popup.width; column++) {
         // print all of the squares here
@@ -322,23 +365,26 @@ class Popup {
           continue;
         }
         // print the item and count of item here
+
+        let item = player.inventory[itemId];
         c.drawImage(
-          assets.images[player.inventory[[row * column]].name],
+          assets.images[item.name],
           BLOCK_WIDTH + BLOCK_WIDTH * column,
-          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * row
+          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row - 1)
         );
         c.drawImage(
           assets.images.TextBackdrop,
           BLOCK_WIDTH + BLOCK_WIDTH * column,
-          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * row
+          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row - 1)
         );
         c.font = "10px arial";
         c.fillStyle = "black";
         c.fillText(
-          player.inventory[[row * column]].quantity,
+          item.quantity,
           BLOCK_WIDTH + BLOCK_WIDTH * column + 2,
-          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * row + 10
+          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row - 1) + 10
         );
+        itemId++;
       }
     }
     c.resetTransform();
@@ -348,6 +394,36 @@ class Popup {
 function PlayView() {
   world.draw();
   player.draw();
+  // draw the stats at the bottom of the screen
+  let statPaddingLeft = 5;
+  let iconWidth = 16;
+  let statWidth = 75 - statPaddingLeft - iconWidth;
+  let icons = [
+    assets.images.CoinIcon,
+    assets.images.DepthIcon,
+    assets.images.BagIcon,
+  ];
+  let values = [
+    player.coins,
+    world.depth,
+    ((player.inventory.length / Player.maxInventory) * 100)
+      .toFixed(0)
+      .toString() + "%",
+  ];
+  for (let i = 0; i < icons.length; i++) {
+    c.drawImage(
+      icons[i],
+      (i + 1) * statPaddingLeft + i * iconWidth + i * statWidth,
+      canvas.height - 1.5 * iconWidth
+    );
+    c.fillStyle = "white";
+    c.font = "bold 15px arial";
+    c.fillText(
+      values[i],
+      (i + 1) * statPaddingLeft + (i + 1) * iconWidth + i * statWidth + 2,
+      canvas.height - 0.5 * iconWidth
+    );
+  }
 }
 function CartView() {
   cartPopup.draw();
@@ -364,11 +440,19 @@ canvas.height = 275;
 const FPS = 10;
 const BLOCK_WIDTH = 32;
 const ORE_TYPES = ["Coal", "Copper", "Iron", "Gold", "Diamond"].reverse();
-const player = new Player(90, 32, 32, 32, assets.images["Player3"], 9);
+const player = new Player(
+  90,
+  World.yOffset + BLOCK_WIDTH,
+  32,
+  32,
+  assets.images["Player3"],
+  9
+);
 const world = new World();
 const cartPopup = new Popup();
 const VIEWS = [PlayView, CartView];
-var view = VIEWS[1];
+var view = VIEWS[0];
+canvas.height = 200;
 
 function gameloop() {
   setTimeout(() => {
@@ -386,9 +470,13 @@ window.addEventListener("click", () => {
 window.addEventListener("keydown", (e) => {
   switch (e.key) {
     case "1":
+      if (view == VIEWS[0]) return;
+      canvas.height = 200;
       view = VIEWS[0];
       break;
     case "2":
+      if (view == VIEWS[1]) return;
+      canvas.height = 275;
       view = VIEWS[1];
       break;
   }

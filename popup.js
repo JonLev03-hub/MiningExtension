@@ -54,6 +54,12 @@ let assets = new Assets({
   CoinIcon: "assets/CoinIcon.png",
   BagIcon: "assets/BagIcon.png",
   DepthIcon: "assets/DepthIcon.png",
+  Dropdown: "assets/Dropdown.png",
+  CartIcon: "assets/CartIcon.png",
+  StoreIcon: "assets/StoreIcon.png",
+  WorkerIcon: "assets/WorkerIcon.png",
+  FurnaceIcon: "assets/FurnaceIcon.png",
+  Background: "assets/Background.png",
 });
 // this is an entity class that can be used to draw animated and unanimated images, this will be extended for specific items that have hover actions, or click functions since they will be distinct per object
 class Entity {
@@ -165,7 +171,7 @@ class Block extends Entity {
 }
 
 class World {
-  static yOffset = 64;
+  static yOffset = 56;
   constructor(depth = 0) {
     this.depth = depth;
     this.width = 7;
@@ -193,7 +199,7 @@ class World {
     }
     c.globalAlpha = 0.6;
     c.fillStyle = "black";
-    c.fillRect(1, World.yOffset + 32, 128, 32);
+    c.fillRect(0, World.yOffset + 32, 128, 32);
     c.globalAlpha = 1.0;
     c.drawImage(
       assets.images.Shadow,
@@ -424,6 +430,70 @@ function PlayView() {
       canvas.height - 0.5 * iconWidth
     );
   }
+
+  // draw menu drop downs
+  let dropdownLeftPadding = 0;
+  let dropDownWidth = 48;
+  let dropdownIcons = [
+    assets.images.CartIcon,
+    assets.images.FurnaceIcon,
+    assets.images.StoreIcon,
+    assets.images.WorkerIcon,
+  ];
+  for (let i = 0; i < dropdownIcons.length; i++) {
+    // drop down draw
+    c.drawImage(
+      assets.images.Dropdown,
+      dropdownLeftPadding * (i + 1) + dropDownWidth * i,
+      0,
+      dropDownWidth,
+      dropDownWidth
+    );
+    // draw background
+    c.drawImage(
+      assets.images.Background,
+      dropdownLeftPadding * (i + 1) + dropDownWidth * i + dropDownWidth / 4,
+      dropDownWidth / 4,
+      dropDownWidth / 2,
+      dropDownWidth / 2
+    );
+    // icon draw
+    c.drawImage(
+      dropdownIcons[i],
+      dropdownLeftPadding * (i + 1) + dropDownWidth * i + dropDownWidth / 4 + 1,
+      dropDownWidth / 4 + 1,
+      dropDownWidth / 2 - 2,
+      dropDownWidth / 2 - 2
+    );
+  }
+}
+function PlayClick() {
+  if (mouseY < 48) {
+    // click the button based on x
+    if (mouseX < 48) {
+      canvas.height = 275;
+      view = VIEWS[1];
+      clickFunc = CLICKFUNCS[1];
+      return;
+    }
+    // if (mouseX < 48 * 2) {
+    //   canvas.height = 275;
+    //   view = VIEWS[1];
+    //   clickFunc = CLICKFUNCS[1];
+    // }
+    // if (mouseX < 48 * 3) {
+    //   canvas.height = 275;
+    //   view = VIEWS[1];
+    //   clickFunc = CLICKFUNCS[1];
+    // }
+    // if (mouseX < 48 * 4) {
+    //   canvas.height = 275;
+    //   view = VIEWS[1];
+    //   clickFunc = CLICKFUNCS[1];
+    // }
+  }
+  player.startAnimation();
+  world.hitBlock();
 }
 function CartView() {
   cartPopup.draw();
@@ -451,6 +521,15 @@ const player = new Player(
 const world = new World();
 const cartPopup = new Popup();
 const VIEWS = [PlayView, CartView];
+const CLICKFUNCS = [
+  PlayClick,
+  () => {
+    console.log("click");
+  },
+];
+var mouseX = 0;
+var mouseY = 0;
+var clickFunc = CLICKFUNCS[0];
 var view = VIEWS[0];
 canvas.height = 200;
 
@@ -463,21 +542,48 @@ function gameloop() {
 }
 gameloop();
 
+window.addEventListener("mousemove", (event) => {
+  mouseX = event.clientX;
+  mouseY = event.clientY;
+  console.log(mouseX, mouseY);
+});
 window.addEventListener("click", () => {
-  player.startAnimation();
-  world.hitBlock();
+  clickFunc();
 });
 window.addEventListener("keydown", (e) => {
+  console.log(e.key);
+
   switch (e.key) {
-    case "1":
+    case "Tab":
+      // check if the view changes
       if (view == VIEWS[0]) return;
+
+      // change the screen height
       canvas.height = 200;
+      // set view and click fucntions
       view = VIEWS[0];
+      clickFunc = CLICKFUNCS[0];
       break;
-    case "2":
+    case "1":
       if (view == VIEWS[1]) return;
       canvas.height = 275;
       view = VIEWS[1];
+      clickFunc = CLICKFUNCS[1];
       break;
+    // case "2":
+    //   if (view == VIEWS[1]) return;
+    //   canvas.height = 275;
+    //   view = VIEWS[3];
+    //   break;
+    // case "3":
+    //   if (view == VIEWS[1]) return;
+    //   canvas.height = 275;
+    //   view = VIEWS[4];
+    //   break;
+    // case "4":
+    //   if (view == VIEWS[1]) return;
+    //   canvas.height = 275;
+    //   view = VIEWS[1];
+    //   break;
   }
 });

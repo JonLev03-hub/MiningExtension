@@ -60,6 +60,7 @@ let assets = new Assets({
   WorkerIcon: "assets/WorkerIcon.png",
   FurnaceIcon: "assets/FurnaceIcon.png",
   Background: "assets/Background.png",
+  Minecart: "assets/Minecart.png",
 });
 // this is an entity class that can be used to draw animated and unanimated images, this will be extended for specific items that have hover actions, or click functions since they will be distinct per object
 class Entity {
@@ -244,6 +245,27 @@ class World {
     }
   }
 }
+class Minecart extends Entity {
+  static x = 90 - 32;
+  static y = World.yOffset + 32;
+  static image = assets.images.Minecart;
+  static width = 32;
+  static maxInventory = 21;
+  constructor(
+    purchased = false,
+    inventory = [{ name: "StoneItem", quantity: 10 }]
+  ) {
+    super(
+      Minecart.x,
+      Minecart.y,
+      Minecart.width,
+      Minecart.width,
+      Minecart.image
+    );
+    this.purchased = purchased;
+    this.inventory = inventory;
+  }
+}
 class Popup {
   static image = assets.images.Popup;
   static width = 7;
@@ -393,6 +415,49 @@ class Popup {
         itemId++;
       }
     }
+    // print the cart inventory or the cart purchase screen
+    if (minecart.purchased == true) {
+      let itemId = 0;
+      for (let row = Minecart.maxInventory / Popup.width; row > 0; row--) {
+        for (let column = 0; column < Popup.width; column++) {
+          // print all of the squares here
+          c.drawImage(
+            assets.images.ItemSlot,
+            BLOCK_WIDTH + BLOCK_WIDTH * column,
+            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 2)
+          );
+          if (
+            column + (row - 1) * Popup.width >
+            minecart.inventory.length - 1
+          ) {
+            continue;
+          }
+          // print the item and count of item here
+
+          let item = minecart.inventory[itemId];
+          c.drawImage(
+            assets.images[item.name],
+            BLOCK_WIDTH + BLOCK_WIDTH * column,
+            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 2)
+          );
+          c.drawImage(
+            assets.images.TextBackdrop,
+            BLOCK_WIDTH + BLOCK_WIDTH * column,
+            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 2)
+          );
+          c.font = "10px arial";
+          c.fillStyle = "black";
+          c.fillText(
+            item.quantity,
+            BLOCK_WIDTH + BLOCK_WIDTH * column + 2,
+            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 2) + 10
+          );
+          itemId++;
+        }
+      }
+    } else {
+      console.log("dont display");
+    }
     c.resetTransform();
   }
 }
@@ -400,6 +465,7 @@ class Popup {
 function PlayView() {
   world.draw();
   player.draw();
+  if (minecart.purchased) minecart.draw();
   // draw the stats at the bottom of the screen
   let statPaddingLeft = 5;
   let iconWidth = 16;
@@ -519,6 +585,7 @@ const player = new Player(
   9
 );
 const world = new World();
+const minecart = new Minecart(true);
 const cartPopup = new Popup();
 const VIEWS = [PlayView, CartView];
 const CLICKFUNCS = [

@@ -380,77 +380,80 @@ class Popup {
         BLOCK_WIDTH
       );
     }
-    let itemId = 0;
-    for (let row = Player.maxInventory / Popup.width; row > 0; row--) {
+    for (let row = 0; row < Player.maxInventory / Popup.width; row++) {
       for (let column = 0; column < Popup.width; column++) {
         // print all of the squares here
         c.drawImage(
           assets.images.ItemSlot,
           BLOCK_WIDTH + BLOCK_WIDTH * column,
-          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row - 1)
+          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * row
         );
-        if (column + (row - 1) * Popup.width > player.inventory.length - 1) {
+        let itemId = column + row * Popup.width;
+        console.log(row, column, itemId);
+        if (itemId > player.inventory.length - 1) {
           continue;
         }
+
+        console.log("got here", itemId, player.inventory.length);
         // print the item and count of item here
 
         let item = player.inventory[itemId];
         c.drawImage(
           assets.images[item.name],
           BLOCK_WIDTH + BLOCK_WIDTH * column,
-          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row - 1)
+          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * row
         );
         c.drawImage(
           assets.images.TextBackdrop,
           BLOCK_WIDTH + BLOCK_WIDTH * column,
-          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row - 1)
+          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * row
         );
         c.font = "10px arial";
         c.fillStyle = "black";
         c.fillText(
           item.quantity,
           BLOCK_WIDTH + BLOCK_WIDTH * column + 2,
-          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row - 1) + 10
+          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * row + 10
         );
         itemId++;
       }
     }
     // print the cart inventory or the cart purchase screen
     if (minecart.purchased == true) {
-      let itemId = 0;
-      for (let row = Minecart.maxInventory / Popup.width; row > 0; row--) {
+      for (let row = 0; row < Minecart.maxInventory / Popup.width; row++) {
         for (let column = 0; column < Popup.width; column++) {
           // print all of the squares here
           c.drawImage(
             assets.images.ItemSlot,
             BLOCK_WIDTH + BLOCK_WIDTH * column,
-            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 2)
+            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 3)
           );
-          if (
-            column + (row - 1) * Popup.width >
-            minecart.inventory.length - 1
-          ) {
+          let itemId = column + row * Popup.width;
+          console.log(row, column, itemId);
+          if (itemId > minecart.inventory.length - 1) {
             continue;
           }
+
+          console.log("got here", itemId, minecart.inventory.length);
           // print the item and count of item here
 
           let item = minecart.inventory[itemId];
           c.drawImage(
             assets.images[item.name],
             BLOCK_WIDTH + BLOCK_WIDTH * column,
-            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 2)
+            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 3)
           );
           c.drawImage(
             assets.images.TextBackdrop,
             BLOCK_WIDTH + BLOCK_WIDTH * column,
-            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 2)
+            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 3)
           );
           c.font = "10px arial";
           c.fillStyle = "black";
           c.fillText(
             item.quantity,
             BLOCK_WIDTH + BLOCK_WIDTH * column + 2,
-            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 2) + 10
+            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 3) + 10
           );
           itemId++;
         }
@@ -564,6 +567,31 @@ function PlayClick() {
 function CartView() {
   cartPopup.draw();
 }
+function CartClick() {
+  // close the popup if you click outside the window
+  if (
+    mouseX > canvas.width - 32 ||
+    mouseX < 32 ||
+    mouseY < 32 ||
+    mouseY > canvas.height - 32
+  ) {
+    // change the screen height
+    canvas.height = 200;
+    // set view and click fucntions
+    view = VIEWS[0];
+    clickFunc = CLICKFUNCS[0];
+    return;
+  }
+
+  // get box poosition
+  let boxX = Math.trunc((mouseX - cartPopup.xOffset) / 32);
+  let boxY = Math.trunc((mouseY - cartPopup.yOffset) / 32);
+
+  // its in chest
+  if (boxY < 4) {
+  }
+  // its in inventory
+}
 
 // setup canvas
 canvas = document.getElementById("gamecanvas");
@@ -588,12 +616,7 @@ const world = new World();
 const minecart = new Minecart(true);
 const cartPopup = new Popup();
 const VIEWS = [PlayView, CartView];
-const CLICKFUNCS = [
-  PlayClick,
-  () => {
-    console.log("click");
-  },
-];
+const CLICKFUNCS = [PlayClick, CartClick];
 var mouseX = 0;
 var mouseY = 0;
 var clickFunc = CLICKFUNCS[0];
@@ -612,7 +635,6 @@ gameloop();
 window.addEventListener("mousemove", (event) => {
   mouseX = event.clientX;
   mouseY = event.clientY;
-  console.log(mouseX, mouseY);
 });
 window.addEventListener("click", () => {
   clickFunc();

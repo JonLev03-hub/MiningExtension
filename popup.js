@@ -61,6 +61,7 @@ let assets = new Assets({
   FurnaceIcon: "assets/FurnaceIcon.png",
   Background: "assets/Background.png",
   Minecart: "assets/Minecart.png",
+  BuyButton: "assets/BuyButton.png",
 });
 // this is an entity class that can be used to draw animated and unanimated images, this will be extended for specific items that have hover actions, or click functions since they will be distinct per object
 class Entity {
@@ -380,86 +381,96 @@ class Popup {
         BLOCK_WIDTH
       );
     }
-    for (let row = 0; row < Player.maxInventory / Popup.width; row++) {
+    let itemId = 0;
+    for (let row = Player.maxInventory / Popup.width; row > 0; row--) {
       for (let column = 0; column < Popup.width; column++) {
         // print all of the squares here
         c.drawImage(
           assets.images.ItemSlot,
           BLOCK_WIDTH + BLOCK_WIDTH * column,
-          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * row
+          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row - 1)
         );
-        let itemId = column + row * Popup.width;
-        console.log(row, column, itemId);
         if (itemId > player.inventory.length - 1) {
           continue;
         }
 
-        console.log("got here", itemId, player.inventory.length);
         // print the item and count of item here
 
         let item = player.inventory[itemId];
         c.drawImage(
           assets.images[item.name],
           BLOCK_WIDTH + BLOCK_WIDTH * column,
-          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * row
+          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row - 1)
         );
         c.drawImage(
           assets.images.TextBackdrop,
           BLOCK_WIDTH + BLOCK_WIDTH * column,
-          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * row
+          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row - 1)
         );
         c.font = "10px arial";
         c.fillStyle = "black";
         c.fillText(
           item.quantity,
           BLOCK_WIDTH + BLOCK_WIDTH * column + 2,
-          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * row + 10
+          Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row - 1) + 10
         );
         itemId++;
       }
     }
     // print the cart inventory or the cart purchase screen
+    itemId = 0;
     if (minecart.purchased == true) {
-      for (let row = 0; row < Minecart.maxInventory / Popup.width; row++) {
+      for (let row = Minecart.maxInventory / Popup.width; row > 0; row--) {
         for (let column = 0; column < Popup.width; column++) {
           // print all of the squares here
           c.drawImage(
             assets.images.ItemSlot,
             BLOCK_WIDTH + BLOCK_WIDTH * column,
-            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 3)
+            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 2)
           );
-          let itemId = column + row * Popup.width;
-          console.log(row, column, itemId);
+          // let itemId = column + row * Popup.width;
+
           if (itemId > minecart.inventory.length - 1) {
             continue;
           }
 
-          console.log("got here", itemId, minecart.inventory.length);
           // print the item and count of item here
-
           let item = minecart.inventory[itemId];
           c.drawImage(
             assets.images[item.name],
             BLOCK_WIDTH + BLOCK_WIDTH * column,
-            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 3)
+            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 2)
           );
           c.drawImage(
             assets.images.TextBackdrop,
             BLOCK_WIDTH + BLOCK_WIDTH * column,
-            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 3)
+            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 2)
           );
           c.font = "10px arial";
           c.fillStyle = "black";
           c.fillText(
             item.quantity,
             BLOCK_WIDTH + BLOCK_WIDTH * column + 2,
-            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 3) + 10
+            Popup.height * BLOCK_WIDTH - BLOCK_WIDTH * (row + 2) + 10
           );
           itemId++;
         }
       }
     } else {
-      console.log("dont display");
+      // display the purchase button or som
+      c.fillStyle = "black";
+      c.textAlign = "center";
+      c.font = "12px arial";
+      c.fillText(
+        "Purchase Minecart $1000 gold",
+        canvas.width / 2,
+        canvas.height / 4
+      );
+      c.drawImage(
+        assets.images.BuyButton,
+        canvas.width / 2 - 32,
+        canvas.height / 4 + 16
+      );
     }
     c.resetTransform();
   }
@@ -584,13 +595,92 @@ function CartClick() {
   }
 
   // get box poosition
-  let boxX = Math.trunc((mouseX - cartPopup.xOffset) / 32);
-  let boxY = Math.trunc((mouseY - cartPopup.yOffset) / 32);
+  let boxX = Math.trunc((mouseX - cartPopup.xOffset) / 32) - 1;
+  let boxY = Math.trunc((mouseY - cartPopup.yOffset) / 32) - 1;
+  if (minecart.purchased) {
+    // Move Items between chest and inventory
+    if (boxY < 4) {
+      let itemId = boxX + boxY * Popup.width;
+      console.log(boxX, boxY, itemId);
+      if (itemId < minecart.inventory.length) {
+        // try to move the item here
+        let item = minecart.inventory[itemId];
+        for (let i = 0; i < player.inventory.length; i++) {
+          if (player.inventory[i].name == item.name) {
+            player.inventory[i].quantity += item.quantity;
+            item.quantity = 0;
+            1;
+            console.log(item);
+            if (player.inventory[i].quantity > 64) {
+              item.quantity = player.inventory[i].quantity - 64;
+              player.inventory[i].quantity = 64;
+            }
+          }
+        }
+        if (
+          item.quantity > 0 &&
+          player.inventory.length < Player.maxInventory
+        ) {
+          player.inventory.push({ name: item.name, quantity: item.quantity });
+          item.quantity = 0;
+        }
 
-  // its in chest
-  if (boxY < 4) {
+        // remove item from chest
+        console.log(item, item.quantity);
+        minecart.inventory[itemId] = item;
+        if (item.quantity == 0) {
+          minecart.inventory.splice(itemId, 1);
+        }
+      }
+    } else if (boxY >= 4 && boxY < 7) {
+      console.log("Here");
+      let itemId = boxX + (boxY - 4) * Popup.width;
+      console.log(itemId);
+      if (itemId < player.inventory.length) {
+        // try to move the item here
+        let item = player.inventory[itemId];
+        for (let i = 0; i < minecart.inventory.length; i++) {
+          if (minecart.inventory[i].name == item.name) {
+            minecart.inventory[i].quantity += item.quantity;
+            item.quantity = 0;
+            1;
+            console.log(item);
+            if (minecart.inventory[i].quantity > 64) {
+              item.quantity = minecart.inventory[i].quantity - 64;
+              minecart.inventory[i].quantity = 64;
+            }
+          }
+        }
+        if (
+          item.quantity > 0 &&
+          minecart.inventory.length < Minecart.maxInventory
+        ) {
+          minecart.inventory.push({ name: item.name, quantity: item.quantity });
+          item.quantity = 0;
+        }
+
+        // remove item from chest
+        console.log(item, item.quantity);
+        player.inventory[itemId] = item;
+        if (item.quantity == 0) {
+          player.inventory.splice(itemId, 1);
+        }
+      }
+    }
+  } else {
+    // purchase minecart click events
+    if (
+      mouseX > canvas.width / 2 - 16 &&
+      mouseX < canvas.width / 2 + 32 &&
+      mouseY > canvas.height / 4 + 16 &&
+      mouseY < canvas.height / 4 + 24 + 32
+    ) {
+      if (player.coins >= 1000) {
+        player.coins -= 1000;
+        minecart.purchased = true;
+      }
+    }
   }
-  // its in inventory
 }
 
 // setup canvas
@@ -613,7 +703,7 @@ const player = new Player(
   9
 );
 const world = new World();
-const minecart = new Minecart(true);
+const minecart = new Minecart(false);
 const cartPopup = new Popup();
 const VIEWS = [PlayView, CartView];
 const CLICKFUNCS = [PlayClick, CartClick];
